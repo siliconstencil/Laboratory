@@ -1,6 +1,8 @@
 # Experimental 32K Context with TurboQuant on Consumer GPUs (RTX 4070 8GB)
 
-This project documents a successful engineering implementation to run **Llama 3.1 8B** models with a **32,768 (32K) context window** on a single consumer-grade **NVIDIA RTX 4070 (8GB VRAM)**. This was achieved by integrating Stanford's **TurboQuant** KV cache compression into the **vLLM** inference engine, utilizing specialized bypass scripts to overcome internal memory validation constraints.
+> Run on **2026-03-28**, a few days after Google Research published TurboQuant.
+
+This project documents a successful engineering implementation to run **Llama 3.1 8B** models with a **32,768 (32K) context window** on a single consumer-grade **NVIDIA RTX 4070 (8GB VRAM)**. This was achieved by integrating **TurboQuant** KV cache compression (Google Research) into the **vLLM** inference engine, utilizing specialized bypass scripts to overcome internal memory validation constraints.
 
 ## 📋 The Engineering Challenge
 
@@ -8,7 +10,7 @@ This project documents a successful engineering implementation to run **Llama 3.
 Standard vLLM estimates the KV cache requirement in FP16/BF16 format. For a 32K context window, the engine statically allocates approximately **4.0 GiB** for the KV cache. When combined with the model weights (~5 GB for 4-bit quant) and Windows/WSL2 OS overhead, the total VRAM requirement exceeds **9 GB**, causing vLLM to abort the initialization with an Out-of-Memory (OOM) error before the engine even starts.
 
 ### The Solution: 3-Bit Quantization
-We utilized **TurboQuant**, which provides high-performance Triton kernels designed to quantize KV cache tensors down to **3-bit (keys) and 2-bit (values)**. This reduces the KV cache footprint by over **80%**, shrinking the 4GB requirement to approximately **800 MB**, comfortably fitting within the available 8GB VRAM of the RTX 4070.
+We used **TurboQuant**, the KV-cache quantization method published by Google Research (Zandieh et al., *TurboQuant: Online Vector Quantization with Near-optimal Distortion Rate*, ICLR 2026), through a community implementation whose Triton kernels quantize KV cache tensors down to **3-bit (keys) and 2-bit (values)**. This reduces the KV cache footprint by over **80%**, shrinking the 4GB requirement to approximately **800 MB**, comfortably fitting within the available 8GB VRAM of the RTX 4070.
 
 ## 🛠️ Implementation Highlights (The 'Bypasses')
 
@@ -31,7 +33,7 @@ To bridge the gap between vLLM's static checks and TurboQuant's dynamic compress
 ## 📥 Setup and Usage
 
 1. Prepare a standard vLLM 0.18.0+ environment.
-2. Clone and install [Stanford's TurboQuant](https://github.com/0xSero/turboquant).
+2. Clone and install the community TurboQuant implementation: [0xSero/turboquant](https://github.com/0xSero/turboquant).
 3. Use the provided `launch_turbo.py` as the entry point for your inference tasks.
 
 ---
